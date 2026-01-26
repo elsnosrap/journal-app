@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 def get_rating() -> int | None:
-    """Prompt the user for a rating between 1 and 10, or 0 to exit."""
+    """Prompt the user for a rating between 1 and 10, or 0 to skip."""
     while True:
         try:
-            rating = int(input("Please enter your rating (1-10, or 0 to exit): "))
+            rating = int(input("Please enter your rating (1-10, or 0 to skip): "))
             if rating == 0:
                 return None
             if 1 <= rating <= 10:
@@ -57,12 +57,10 @@ def main() -> None:
     """Main entry point."""
     print("Welcome to the Rating CLI!")
     rating = get_rating()
-    if rating is None:
-        print("Goodbye!")
-        return
-    filename = save_rating(rating)
-    print(f"You rated: {rating}/10")
-    print(f"Rating saved to {filename}")
+    if rating is not None:
+        filename = save_rating(rating)
+        print(f"You rated: {rating}/10")
+        print(f"Rating saved to {filename}")
 
     sleep_score = get_sleep_score()
     if sleep_score is not None:
