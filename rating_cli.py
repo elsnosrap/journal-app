@@ -19,6 +19,20 @@ def get_rating() -> int | None:
             print("Please enter a valid number.")
 
 
+def get_sleep_score() -> int | None:
+    """Prompt the user for a sleep score between 1 and 10, or 0 to skip."""
+    while True:
+        try:
+            score = int(input("Please enter your sleep score (1-10, or 0 to skip): "))
+            if score == 0:
+                return None
+            if 1 <= score <= 10:
+                return score
+            print("Sleep score must be between 1 and 10.")
+        except ValueError:
+            print("Please enter a valid number.")
+
+
 def save_rating(rating: int) -> str:
     """Save the rating to a timestamped file in the .data directory."""
     data_dir = Path(".data")
@@ -26,6 +40,16 @@ def save_rating(rating: int) -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
     filepath = data_dir / f"rating_{timestamp}.txt"
     filepath.write_text(str(rating))
+    return str(filepath)
+
+
+def save_sleep_score(score: int) -> str:
+    """Save the sleep score to a timestamped file in the .data directory."""
+    data_dir = Path(".data")
+    data_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    filepath = data_dir / f"sleep_score_{timestamp}.txt"
+    filepath.write_text(str(score))
     return str(filepath)
 
 
@@ -39,6 +63,12 @@ def main() -> None:
     filename = save_rating(rating)
     print(f"You rated: {rating}/10")
     print(f"Rating saved to {filename}")
+
+    sleep_score = get_sleep_score()
+    if sleep_score is not None:
+        sleep_filename = save_sleep_score(sleep_score)
+        print(f"Your sleep score: {sleep_score}/10")
+        print(f"Sleep score saved to {sleep_filename}")
 
 
 if __name__ == "__main__":
