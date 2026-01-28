@@ -54,15 +54,30 @@ def save_field(label: str, data_type: str) -> None:
     conn.close()
 
 
+def ask_continue() -> bool:
+    """Ask user if they want to create another field."""
+    while True:
+        response = input("\nCreate another field? (y/n): ").strip().lower()
+        if response == "y":
+            return True
+        if response == "n":
+            return False
+        print("Please enter 'y' or 'n'.")
+
+
 def main() -> None:
     init_db()
     print("=== Field Creator ===\n")
 
-    label = get_label()
-    data_type = get_data_type()
+    while True:
+        label = get_label()
+        data_type = get_data_type()
 
-    save_field(label, data_type)
-    print(f"\nField saved: '{label}' ({data_type})")
+        save_field(label, data_type)
+        print(f"\nField saved: '{label}' ({data_type})")
+
+        if not ask_continue():
+            break
 
 
 if __name__ == "__main__":
