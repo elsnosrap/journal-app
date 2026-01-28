@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CLI for creating data fields with labels and types."""
 
+import argparse
 import sqlite3
 from pathlib import Path
 
@@ -54,6 +55,23 @@ def save_field(label: str, data_type: str) -> None:
     conn.close()
 
 
+def list_fields() -> None:
+    """Print all fields from the database."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.execute("SELECT id, label, data_type FROM fields")
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        print("No fields found.")
+        return
+
+    print(f"{'ID':<6}{'Label':<20}{'Type':<10}")
+    print("-" * 36)
+    for row in rows:
+        print(f"{row[0]:<6}{row[1]:<20}{row[2]:<10}")
+
+
 def ask_continue() -> bool:
     """Ask user if they want to create another field."""
     while True:
@@ -66,7 +84,16 @@ def ask_continue() -> bool:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Create and manage data fields.")
+    parser.add_argument("-l", "--list", action="store_true", help="List all fields")
+    args = parser.parse_args()
+
     init_db()
+
+    if args.list:
+        list_fields()
+        return
+
     print("=== Field Creator ===\n")
 
     while True:
