@@ -2,6 +2,8 @@ import argparse
 from datetime import datetime
 import os
 import sqlite3
+import subprocess
+import tempfile
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 DB_PATH = os.path.join(DATA_DIR, "data.db")
@@ -237,16 +239,47 @@ def collect_data():
         elif data_type == DATA_TYPE_TEXT:
             response = input(f"{prompt_text} (Y/n): ").strip()
             if response == "" or response == "Y":
-                text_val = input("Enter text: ").strip()
-                conn.execute(
-                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value, created) VALUES (?, ?, ?)",
-                    (dt_key, text_val, datetime.now().strftime(DATETIME_FORMAT)),
-                )
-                conn.commit()
+                fd, tmp_path = tempfile.mkstemp(suffix=".txt")
+                os.close(fd)
+                result = subprocess.run(["vim", tmp_path])
+                if result.returncode == 0:
+                    with open(tmp_path, "r") as f:
+                        text_val = f.read().strip()
+                    conn.execute(
+                        f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value, created) VALUES (?, ?, ?)",
+                        (dt_key, text_val, datetime.now().strftime(DATETIME_FORMAT)),
+                    )
+                    conn.commit()
+                else:
+                    print("Vim exited with an error. Skipping.")
+                os.unlink(tmp_path)
 
         print()
 
     conn.close()
+
+
+def list_user_data():
+    conn = init_db()
+    rows = conn.execute(
+        f"""SELECT u.key, u.data_type, u.created, u.int_value, u.text_value, d.label
+            FROM {TABLE_NAME_USER_DATA} u
+            JOIN {TABLE_NAME_DATA_TYPES} d ON u.data_type = d.key"""
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        print("No user data recorded.")
+        return
+
+    for row in rows:
+        key, dt_key, created, int_value, text_value, label = row
+        print(f"[{key}]")
+        print(f"  Label: {label}")
+        print(f"  Created: {created}")
+        print(f"  Int value: {int_value}")
+        print(f"  Text value: {text_value}")
+        print()
 
 
 def main():
@@ -254,6 +287,7 @@ def main():
     parser.add_argument("--config", action="store_true", help="Configure a journal field")
     parser.add_argument("--list-data-types", action="store_true", help="List configured data types")
     parser.add_argument("--edit-data-type", type=int, metavar="KEY", help="Edit a data type by its key")
+    parser.add_argument("--list-user-data", action="store_true", help="List all user data")
     args = parser.parse_args()
 
     if args.config:
@@ -262,6 +296,8 @@ def main():
         edit_data_type(args.edit_data_type)
     elif args.list_data_types:
         list_data_types()
+    elif args.list_user_data:
+        list_user_data()
     else:
         collect_data()
 
