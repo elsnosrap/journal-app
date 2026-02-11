@@ -5,7 +5,7 @@ import sqlite3
 import subprocess
 import tempfile
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".data")
 DB_PATH = os.path.join(DATA_DIR, "data.db")
 TABLE_NAME_DATA_TYPES = "data_types"
 TABLE_NAME_USER_DATA = "user_data"
