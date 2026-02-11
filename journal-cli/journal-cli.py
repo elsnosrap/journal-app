@@ -36,18 +36,24 @@ def init_db():
     return conn
 
 
-def get_data_type():
+def get_data_type(default=None):
     valid_types = {"int", "boolean", "date", "text"}
     while True:
-        data_type = input("Data type (int, boolean, date, text): ").strip().lower()
+        default_hint = f" [{default}]" if default else ""
+        data_type = input(f"Data type (int, boolean, date, text){default_hint}: ").strip().lower()
+        if data_type == "" and default:
+            return default
         if data_type in valid_types:
             return data_type
         print("Invalid data type. Please choose from: int, boolean, date, text")
 
 
-def get_int_bound(bound_name):
+def get_int_bound(bound_name, default=None):
     while True:
-        value = input(f"  {bound_name} value (leave blank for none): ").strip()
+        default_hint = f" [{default}]" if default is not None else ""
+        value = input(f"  {bound_name} value (leave blank for none){default_hint}: ").strip()
+        if value == "" and default is not None:
+            return default
         if value == "":
             return None
         try:
@@ -56,32 +62,99 @@ def get_int_bound(bound_name):
             print("  Please enter a valid integer or leave blank.")
 
 
-def configure():
-    label = input("Label: ").strip()
-    data_type = get_data_type()
-    prompt = input("Prompt: ").strip()
+def configure(defaults=None):
+    default_label = defaults["label"] if defaults else None
+    default_data_type = defaults["data_type"] if defaults else None
+    default_prompt = defaults["prompt"] if defaults else None
+    default_min = defaults.get("min") if defaults else None
+    default_max = defaults.get("max") if defaults else None
+
+    label_hint = f" [{default_label}]" if default_label else ""
+    label = input(f"Label{label_hint}: ").strip()
+    if label == "" and default_label:
+        label = default_label
+
+    data_type = get_data_type(default=default_data_type)
+
+    prompt_hint = f" [{default_prompt}]" if default_prompt else ""
+    prompt = input(f"Prompt{prompt_hint}: ").strip()
+    if prompt == "" and default_prompt:
+        prompt = default_prompt
 
     min_val = None
     max_val = None
     if data_type == "int":
-        min_val = get_int_bound("Minimum")
-        max_val = get_int_bound("Maximum")
+        min_val = get_int_bound("Minimum", default=default_min)
+        max_val = get_int_bound("Maximum", default=default_max)
+
+    return {
+        "label": label,
+        "data_type": data_type,
+        "prompt": prompt,
+        "min": min_val,
+        "max": max_val,
+    }
+
+
+def create_data_type():
+    config = configure()
 
     conn = init_db()
     conn.execute(
         f"INSERT INTO {TABLE_NAME_DATA_TYPES} (label, data_type, prompt, min_value, max_value) VALUES (?, ?, ?, ?, ?)",
-        (label, DATA_TYPE_MAP[data_type], prompt, min_val, max_val),
+        (config["label"], DATA_TYPE_MAP[config["data_type"]], config["prompt"], config["min"], config["max"]),
     )
     conn.commit()
     conn.close()
 
     print("\nConfiguration saved:")
-    print(f"  Label: {label}")
-    print(f"  Data type: {data_type} ({DATA_TYPE_MAP[data_type]})")
-    print(f"  Prompt: {prompt}")
-    if data_type == "int":
-        print(f"  Min: {min_val}")
-        print(f"  Max: {max_val}")
+    print(f"  Label: {config['label']}")
+    print(f"  Data type: {config['data_type']} ({DATA_TYPE_MAP[config['data_type']]})")
+    print(f"  Prompt: {config['prompt']}")
+    if config["data_type"] == "int":
+        print(f"  Min: {config['min']}")
+        print(f"  Max: {config['max']}")
+
+
+def edit_data_type(key):
+    conn = init_db()
+    row = conn.execute(
+        f"SELECT key, label, data_type, prompt, min_value, max_value FROM {TABLE_NAME_DATA_TYPES} WHERE key = ?",
+        (key,),
+    ).fetchone()
+
+    if not row:
+        conn.close()
+        print(f"No data type found with key {key}.")
+        return
+
+    _, label, data_type_int, prompt, min_val, max_val = row
+    data_type_name = DATA_TYPE_REVERSE_MAP.get(data_type_int, "unknown")
+
+    defaults = {
+        "label": label,
+        "data_type": data_type_name,
+        "prompt": prompt,
+        "min": min_val,
+        "max": max_val,
+    }
+
+    config = configure(defaults=defaults)
+
+    conn.execute(
+        f"UPDATE {TABLE_NAME_DATA_TYPES} SET label = ?, data_type = ?, prompt = ?, min_value = ?, max_value = ? WHERE key = ?",
+        (config["label"], DATA_TYPE_MAP[config["data_type"]], config["prompt"], config["min"], config["max"], key),
+    )
+    conn.commit()
+    conn.close()
+
+    print("\nConfiguration updated:")
+    print(f"  Label: {config['label']}")
+    print(f"  Data type: {config['data_type']} ({DATA_TYPE_MAP[config['data_type']]})")
+    print(f"  Prompt: {config['prompt']}")
+    if config["data_type"] == "int":
+        print(f"  Min: {config['min']}")
+        print(f"  Max: {config['max']}")
 
 
 DATA_TYPE_REVERSE_MAP = {v: k for k, v in DATA_TYPE_MAP.items()}
@@ -113,10 +186,13 @@ def main():
     parser = argparse.ArgumentParser(description="Journal CLI")
     parser.add_argument("--config", action="store_true", help="Configure a journal field")
     parser.add_argument("--list-data-types", action="store_true", help="List configured data types")
+    parser.add_argument("--edit-data-type", type=int, metavar="KEY", help="Edit a data type by its key")
     args = parser.parse_args()
 
     if args.config:
-        configure()
+        create_data_type()
+    elif args.edit_data_type is not None:
+        edit_data_type(args.edit_data_type)
     elif args.list_data_types:
         list_data_types()
     else:
