@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import os
 import sqlite3
 
@@ -6,6 +7,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 DB_PATH = os.path.join(DATA_DIR, "data.db")
 TABLE_NAME_DATA_TYPES = "data_types"
 TABLE_NAME_USER_DATA = "user_data"
+DATETIME_FORMAT = "%Y-%m-%d %H:%M"
 
 DATA_TYPE_INT = 1
 DATA_TYPE_BOOLEAN = 2
@@ -37,6 +39,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS {TABLE_NAME_USER_DATA} (
             key INTEGER PRIMARY KEY AUTOINCREMENT,
             data_type INTEGER NOT NULL REFERENCES {TABLE_NAME_DATA_TYPES}(key),
+            created TEXT NOT NULL,
             int_value INTEGER,
             text_value TEXT
         )
@@ -225,8 +228,8 @@ def collect_data():
                     print(f"Value must be at most {max_val}.")
                     continue
                 conn.execute(
-                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, int_value) VALUES (?, ?)",
-                    (dt_key, int_val),
+                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, int_value, created) VALUES (?, ?, ?)",
+                    (dt_key, int_val, datetime.now().strftime(DATETIME_FORMAT)),
                 )
                 conn.commit()
                 break
@@ -236,8 +239,8 @@ def collect_data():
             if response == "" or response == "Y":
                 text_val = input("Enter text: ").strip()
                 conn.execute(
-                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value) VALUES (?, ?)",
-                    (dt_key, text_val),
+                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value, created) VALUES (?, ?, ?)",
+                    (dt_key, text_val, datetime.now().strftime(DATETIME_FORMAT)),
                 )
                 conn.commit()
 
