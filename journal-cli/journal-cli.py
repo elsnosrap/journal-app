@@ -276,8 +276,10 @@ def list_user_data():
         print(f"[{key}]")
         print(f"  Label: {label}")
         print(f"  Created: {created}")
-        print(f"  Int value: {int_value}")
-        print(f"  Text value: {text_value}")
+        if int_value is not None:
+            print(f"  Int value: {int_value}")
+        if text_value is not None:
+            print(f"  Text value: {text_value}")
         print()
 
 
