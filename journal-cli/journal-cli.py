@@ -5,6 +5,7 @@ import sqlite3
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 DB_PATH = os.path.join(DATA_DIR, "data.db")
 TABLE_NAME_DATA_TYPES = "data_types"
+TABLE_NAME_USER_DATA = "user_data"
 
 DATA_TYPE_INT = 1
 DATA_TYPE_BOOLEAN = 2
@@ -30,6 +31,14 @@ def init_db():
             prompt TEXT NOT NULL,
             min_value INTEGER,
             max_value INTEGER
+        )
+    """)
+    conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS {TABLE_NAME_USER_DATA} (
+            key INTEGER PRIMARY KEY AUTOINCREMENT,
+            data_type INTEGER NOT NULL REFERENCES {TABLE_NAME_DATA_TYPES}(key),
+            int_value INTEGER,
+            text_value TEXT
         )
     """)
     conn.commit()
@@ -182,6 +191,61 @@ def list_data_types():
         print()
 
 
+def collect_data():
+    conn = init_db()
+    rows = conn.execute(
+        f"SELECT key, label, data_type, prompt, min_value, max_value FROM {TABLE_NAME_DATA_TYPES}"
+    ).fetchall()
+
+    if not rows:
+        print("No data types configured. Run with --config to add one.")
+        conn.close()
+        return
+
+    for row in rows:
+        dt_key, label, data_type, prompt_text, min_val, max_val = row
+
+        print(label)
+
+        if data_type == DATA_TYPE_INT:
+            range_hint = ""
+            if min_val is not None and max_val is not None:
+                range_hint = f" ({min_val}-{max_val})"
+            while True:
+                response = input(f"{prompt_text}{range_hint}: ").strip()
+                try:
+                    int_val = int(response)
+                except ValueError:
+                    print("Please enter a valid integer.")
+                    continue
+                if min_val is not None and int_val < min_val:
+                    print(f"Value must be at least {min_val}.")
+                    continue
+                if max_val is not None and int_val > max_val:
+                    print(f"Value must be at most {max_val}.")
+                    continue
+                conn.execute(
+                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, int_value) VALUES (?, ?)",
+                    (dt_key, int_val),
+                )
+                conn.commit()
+                break
+
+        elif data_type == DATA_TYPE_TEXT:
+            response = input(f"{prompt_text} (Y/n): ").strip()
+            if response == "" or response == "Y":
+                text_val = input("Enter text: ").strip()
+                conn.execute(
+                    f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value) VALUES (?, ?)",
+                    (dt_key, text_val),
+                )
+                conn.commit()
+
+        print()
+
+    conn.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Journal CLI")
     parser.add_argument("--config", action="store_true", help="Configure a journal field")
@@ -196,7 +260,7 @@ def main():
     elif args.list_data_types:
         list_data_types()
     else:
-        print("Coming Soon!")
+        collect_data()
 
 
 if __name__ == "__main__":
