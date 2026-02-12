@@ -207,6 +207,8 @@ def collect_data():
         conn.close()
         return
 
+    timestamp = datetime.now().strftime(DATETIME_FORMAT)
+
     for row in rows:
         dt_key, label, data_type, prompt_text, min_val, max_val = row
 
@@ -231,7 +233,7 @@ def collect_data():
                     continue
                 conn.execute(
                     f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, int_value, created) VALUES (?, ?, ?)",
-                    (dt_key, int_val, datetime.now().strftime(DATETIME_FORMAT)),
+                    (dt_key, int_val, timestamp),
                 )
                 conn.commit()
                 break
@@ -246,7 +248,7 @@ def collect_data():
                         text_val = f.read().strip()
                     conn.execute(
                         f"INSERT INTO {TABLE_NAME_USER_DATA} (data_type, text_value, created) VALUES (?, ?, ?)",
-                        (dt_key, text_val, datetime.now().strftime(DATETIME_FORMAT)),
+                        (dt_key, text_val, timestamp),
                     )
                     conn.commit()
                 else:
