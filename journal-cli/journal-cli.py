@@ -219,12 +219,15 @@ def collect_data():
             if min_val is not None and max_val is not None:
                 range_hint = f" ({min_val}-{max_val})"
             while True:
-                response = input(f"{prompt_text}{range_hint}: ").strip()
+                response = input(f"{prompt_text}{range_hint}, 0 to skip: ").strip()
                 try:
                     int_val = int(response)
                 except ValueError:
                     print("Please enter a valid integer.")
                     continue
+                if int_val == 0:
+                    print("Skipping.")
+                    break
                 if min_val is not None and int_val < min_val:
                     print(f"Value must be at least {min_val}.")
                     continue
