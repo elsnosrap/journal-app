@@ -245,7 +245,7 @@ def collect_data():
             response = input(f"{prompt_text} (Y/n): ").strip()
             if response == "" or response == "Y":
                 fd, tmp_path = tempfile.mkstemp(suffix=".md")
-                result = subprocess.run(["vim", "-c", "set textwidth=90", "-c", "set colorcolumn=90", tmp_path])
+                result = subprocess.run(["vim", tmp_path])
                 if result.returncode == 0:
                     with open(tmp_path, "r") as f:
                         text_val = f.read().strip()
