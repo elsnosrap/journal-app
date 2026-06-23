@@ -176,7 +176,7 @@ DATA_TYPE_REVERSE_MAP = {v: k for k, v in DATA_TYPE_MAP.items()}
 
 def list_data_types():
     conn = init_db()
-    rows = conn.execute(f"SELECT key, label, data_type, prompt, min_value, max_value FROM {TABLE_NAME_DATA_TYPES}").fetchall()
+    rows = conn.execute(f"SELECT key, label, data_type, prompt, min_value, max_value, is_archived FROM {TABLE_NAME_DATA_TYPES}").fetchall()
     conn.close()
 
     if not rows:
@@ -184,7 +184,7 @@ def list_data_types():
         return
 
     for row in rows:
-        key, label, data_type, prompt, min_val, max_val = row
+        key, label, data_type, prompt, min_val, max_val, is_archived = row
         type_name = DATA_TYPE_REVERSE_MAP.get(data_type, "unknown")
         print(f"[{key}]")
         print(f"  Label: {label}")
@@ -193,13 +193,14 @@ def list_data_types():
         if data_type == DATA_TYPE_INT:
             print(f"  Min: {min_val}")
             print(f"  Max: {max_val}")
+        print(f"  Is archived: {is_archived}")
         print()
 
 
 def collect_data():
     conn = init_db()
     rows = conn.execute(
-        f"SELECT key, label, data_type, prompt, min_value, max_value FROM {TABLE_NAME_DATA_TYPES}"
+        f"SELECT key, label, data_type, prompt, min_value, max_value, is_archived FROM {TABLE_NAME_DATA_TYPES}"
     ).fetchall()
 
     if not rows:
@@ -210,7 +211,10 @@ def collect_data():
     timestamp = datetime.now().strftime(DATETIME_FORMAT)
 
     for row in rows:
-        dt_key, label, data_type, prompt_text, min_val, max_val = row
+        dt_key, label, data_type, prompt_text, min_val, max_val, is_archived = row
+
+        if is_archived == 1:
+            continue
 
         print(label)
 
